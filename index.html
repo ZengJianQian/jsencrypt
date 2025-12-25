@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8">
-    <title>RSA加密结果</title>
+    <title>RSA加密工具 - 飞书回调</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
 </head>
-
 <body>
     <div id="result"></div>
 
@@ -37,7 +35,7 @@
                 { original: '=', encoded: '%3D' },
                 { original: '#', encoded: '%23' }
             ];
-
+            
             let processed = content;
             specialCharMap.forEach(mapping => {
                 processed = processed.replace(new RegExp('\\' + mapping.original, 'g'), mapping.encoded);
@@ -45,22 +43,63 @@
             return processed;
         }
 
+        // 发送数据到飞书
+        function sendToFeishu(encryptedData) {
+            const feishuUrl = 'https://open.feishu.cn/anycross/trigger/callback/MDM3YmNiMDY3ZGYxYzFlZmYyNmRkN2Q4Njk2MzRmYWRi';
+            
+            fetch(feishuUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    encrypted_data: encryptedData,
+                    timestamp: new Date().toISOString()
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('result').textContent = '数据已成功发送到飞书: ' + JSON.stringify(data);
+            })
+            .catch(error => {
+                document.getElementById('result').textContent = '发送到飞书失败: ' + error.message;
+            });
+        }
+
         // 主执行逻辑
         function main() {
             const pbkey = getQueryParam('pbkey');
             const content = getQueryParam('content');
-
+            
             if (!pbkey || !content) {
                 document.getElementById('result').textContent = '请提供pbkey和content参数';
                 return;
             }
-
+            
             try {
+                // 加密内容
                 const encrypted = encryptContent(pbkey, content);
+                if (!encrypted) {
+                    document.getElementById('result').textContent = '加密失败，请检查公钥格式';
+                    return;
+                }
+                
+                // 处理特殊字符
                 const processed = dealEncryptContent(encrypted);
-                document.getElementById('result').textContent = processed;
+                
+                // 显示加密结果
+                document.getElementById('result').textContent = '加密结果: ' + processed;
+                
+                // 发送到飞书
+                sendToFeishu(processed);
+                
             } catch (e) {
-                document.getElementById('result').textContent = '加密失败: ' + e.message;
+                document.getElementById('result').textContent = '加密过程中出错: ' + e.message;
             }
         }
 
@@ -68,5 +107,4 @@
         window.onload = main;
     </script>
 </body>
-
 </html>
