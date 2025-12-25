@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>RSA加密工具 - 飞书回调</title>
+    <title>RSA加密工具 - GET请求版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
 </head>
 <body>
@@ -24,57 +24,27 @@
         }
 
         // 处理特殊字符
-        function dealEncryptContent(content) {
+        function encodeSpecialChars(content) {
             if (!content) return content;
-            const specialCharMap = [
-                { original: '+', encoded: '%2B' },
-                { original: ' ', encoded: '%20' },
-                { original: '/', encoded: '%2F' },
-                { original: '?', encoded: '%3F' },
-                { original: '&', encoded: '%26' },
-                { original: '=', encoded: '%3D' },
-                { original: '#', encoded: '%23' }
-            ];
             
-            let processed = content;
-            specialCharMap.forEach(mapping => {
-                processed = processed.replace(new RegExp('\\' + mapping.original, 'g'), mapping.encoded);
-            });
-            return processed;
-        }
-
-        // 发送数据到飞书
-        function sendToFeishu(encryptedData) {
-            const feishuUrl = 'https://open.feishu.cn/anycross/trigger/callback/MDM3YmNiMDY3ZGYxYzFlZmYyNmRkN2Q4Njk2MzRmYWRi';
+            const charMap = {
+                '+': '%2B',
+                ' ': '%20',
+                '/': '%2F',
+                '?': '%3F',
+                '&': '%26',
+                '=': '%3D',
+                '#': '%23'
+            };
             
-            fetch(feishuUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    encrypted_data: encryptedData,
-                    timestamp: new Date().toISOString()
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('网络响应不正常');
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('result').textContent = '数据已成功发送到飞书: ' + JSON.stringify(data);
-            })
-            .catch(error => {
-                document.getElementById('result').textContent = '发送到飞书失败: ' + error.message;
-            });
+            return content.replace(/[+ /?&=#]/g, match => charMap[match]);
         }
 
         // 主执行逻辑
         function main() {
             const pbkey = getQueryParam('pbkey');
             const content = getQueryParam('content');
+            const callbackUrl = "https://open.feishu.cn/anycross/trigger/callback/MGU0ZTIxODdlZTIyMGY3N2FiODdhMzhlNjc5MmNkNmEy";
             
             if (!pbkey || !content) {
                 document.getElementById('result').textContent = '请提供pbkey和content参数';
@@ -90,13 +60,16 @@
                 }
                 
                 // 处理特殊字符
-                const processed = dealEncryptContent(encrypted);
+                const processed = encodeSpecialChars(encrypted);
                 
                 // 显示加密结果
                 document.getElementById('result').textContent = '加密结果: ' + processed;
                 
-                // 发送到飞书
-                sendToFeishu(processed);
+                // 如果有回调URL，则跳转
+                if (callbackUrl) {
+                    const resultUrl = `${callbackUrl}?encrypted=${encodeURIComponent(processed)}`;
+                    window.location.href = resultUrl;
+                }
                 
             } catch (e) {
                 document.getElementById('result').textContent = '加密过程中出错: ' + e.message;
