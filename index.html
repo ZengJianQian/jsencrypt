@@ -67,7 +67,7 @@
                 
                 // 如果有回调URL，则跳转
                 if (callbackUrl) {
-                    const resultUrl = `${callbackUrl}?encrypted=${encodeURIComponent(processed)}`;
+                    const resultUrl = `${callbackUrl}?encrypted=${encodeURIComponent(processed)&content=${encodeURIComponent(content)}}`;
                     window.location.href = resultUrl;
                 }
                 
